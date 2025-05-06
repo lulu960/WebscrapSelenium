@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <title>Recherche Doctolib</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <h1 class="mb-4">Recherche Doctolib</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-warning">
+            {{ messages[0] }}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <form method="post">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="query" class="form-label">Requête</label>
+            <input type="text" class="form-control" id="query" name="query" required>
+          </div>
+          <div class="col-md-6">
+            <label for="address" class="form-label">Adresse</label>
+            <input type="text" class="form-control" id="address" name="address">
+          </div>
+          <div class="col-md-4">
+            <label for="max_results" class="form-label">Nombre max de résultats</label>
+            <input type="number" class="form-control" id="max_results" name="max_results" min="1">
+          </div>
+          <div class="col-md-4">
+            <label for="start_date" class="form-label">Date de début (JJ/MM/AAAA)</label>
+            <input type="text" class="form-control" id="start_date" name="start_date" placeholder="01/06/2025">
+          </div>
+          <div class="col-md-4">
+            <label for="end_date" class="form-label">Date de fin (JJ/MM/AAAA)</label>
+            <input type="text" class="form-control" id="end_date" name="end_date" placeholder="30/06/2025">
+          </div>
+          <div class="col-md-6">
+            <label for="assurance" class="form-label">Assurance</label>
+            <select class="form-select" id="assurance" name="assurance">
+              <option value="">Sélectionnez...</option>
+              <option value="secteur1">Secteur 1</option>
+              <option value="secteur2">Secteur 2</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="consultation" class="form-label">Type de consultation</label>
+            <select class="form-select" id="consultation" name="consultation">
+              <option value="">Sélectionnez...</option>
+              <option value="presentiel">Présentiel</option>
+              <option value="video">Vidéo</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="price_min" class="form-label">Prix min (€)</label>
+            <input type="number" class="form-control" id="price_min" name="price_min" min="0">
+          </div>
+          <div class="col-md-6">
+            <label for="price_max" class="form-label">Prix max (€)</label>
+            <input type="number" class="form-control" id="price_max" name="price_max" min="0">
+          </div>
+          <div class="col-md-6">
+            <label for="include_zone" class="form-label">Inclure zone</label>
+            <input type="text" class="form-control" id="include_zone" name="include_zone">
+          </div>
+          <div class="col-md-6">
+            <label for="exclude_zone" class="form-label">Exclure zone</label>
+            <input type="text" class="form-control" id="exclude_zone" name="exclude_zone">
+          </div>
+        </div>
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">Rechercher</button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
