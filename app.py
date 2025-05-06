@@ -38,6 +38,7 @@ def init_driver(headless=False):
         options.add_argument('--headless')
     options.add_argument('--disable-gpu')
     options.add_argument('--window-size=1920,1080')
+    options.add_argument('--log-level=1')
     driver = webdriver.Chrome(options=options)
     driver.implicitly_wait(5)
     return driver
@@ -101,6 +102,14 @@ def extract_data(card):
     except Exception:
         logging.debug("Aucune dispo trouvée")
 
+    # Horaires (nouveau champ)
+    horaires = []
+    try:
+        horaires_elements = card.find_elements(By.CSS_SELECTOR, "[data-test='schedule']")
+        horaires = [element.text for element in horaires_elements]
+    except Exception:
+        logging.debug("Horaires introuvables")
+
     # Type
     consult = 'Visio' if 'Visio' in card.text else 'Sur place'
 
@@ -142,11 +151,28 @@ def extract_data(card):
     except Exception:
         logging.warning("Adresse introuvable avec le nouveau sélecteur")
 
-    row = [name, dispo, consult, sector, price, street, postal, city]
+    row = [name, dispo, ', '.join(horaires), consult, sector, price, street, postal, city]
     logging.info("Ligne extraite: %s", row)
     return row
 
 
+def scroll_to_load_all(driver):
+    logging.info("Début du défilement pour charger tout le DOM")
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        try:
+            WebDriverWait(driver, 10).until(
+                lambda d: driver.execute_script("return document.body.scrollHeight") > last_height
+            )
+        except TimeoutException:
+            logging.info("Aucun nouveau contenu chargé après le défilement.")
+            break
+        last_height = driver.execute_script("return document.body.scrollHeight")
+    logging.info("Défilement terminé, tout le DOM est chargé")
+
+
+# Augmenter le délai d'attente et ajouter une capture d'écran en cas d'erreur
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -161,7 +187,7 @@ def index():
             return redirect(url_for('index'))
 
         driver = init_driver(headless=False)
-        wait = WebDriverWait(driver, 20)
+        wait = WebDriverWait(driver, 30)  # Augmenter le délai d'attente à 30 secondes
         try:
             driver.get('https://www.doctolib.fr/')
             accept_cookies(driver)
@@ -196,6 +222,9 @@ def index():
             btn.click()
             logging.info("Bouton Rechercher cliqué")
 
+            # Défilement pour charger tout le DOM
+            scroll_to_load_all(driver)
+
             # Attente des cartes
             try:
                 wait.until(EC.presence_of_all_elements_located(
@@ -203,7 +232,8 @@ def index():
                 ))
                 logging.info("Cartes résultats chargées")
             except TimeoutException:
-                logging.error("Timeout attente des résultats")
+                driver.save_screenshot("timeout_error.png")  # Capture d'écran en cas d'erreur
+                logging.error("Timeout attente des résultats. Capture d'écran enregistrée.")
                 flash("Aucun résultat ou page trop lente.")
                 return redirect(url_for('index'))
 
@@ -215,7 +245,8 @@ def index():
             rows = [extract_data(card) for card in cards[:maxr]]
 
         except Exception:
-            logging.exception("Erreur durant le scraping")
+            driver.save_screenshot("general_error.png")  # Capture d'écran pour toute autre erreur
+            logging.exception("Erreur durant le scraping. Capture d'écran enregistrée.")
             flash("Une erreur est survenue lors du scraping.")
             return redirect(url_for('index'))
         finally:
@@ -225,7 +256,7 @@ def index():
         # Génération du CSV
         si = io.StringIO()
         w = csv.writer(si)
-        w.writerow(['Nom','Prochaine dispo','Type','Secteur','Prix (€)','Rue','CP','Ville'])
+        w.writerow(['Nom','Prochaine dispo','Horaires','Type','Secteur','Prix (€)','Rue','CP','Ville'])
         w.writerows(rows)
         si.seek(0)
         logging.info("Envoi du CSV")
